@@ -1,0 +1,24 @@
+FLOW
+
+1. Initialize an empty list A.
+2. Populate A with all possible tuples (x, y) where:
+   - x ranges from 0 to 13
+   - y ranges from 0 to 3
+3. Sort A by (y, x) in ascending order.
+4. Use a random shuffle algorithm to reorder A.
+5. Output the shuffled list A.
+
+
+IMPLEMENTATION
+
+FUNCTION shuffle_list():
+    A = EMPTY LIST
+    FOR x FROM 0 TO 13:
+        FOR y FROM 0 TO 3:
+            APPEND (x, y) TO A
+
+    SORT A BY (y, x) IN ASCENDING ORDER
+
+    SHUFFLE A RANDOMLY USING A RANDOM SHUFFLING ALGORITHM
+
+    RETURN A
