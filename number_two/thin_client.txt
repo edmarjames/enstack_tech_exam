@@ -1,0 +1,81 @@
+1. Understanding the Data Load
+- Each device sends acceleration data for X, Y, and Z axes at 16,000 Hz.
+- If each measurement consists of three 32-bit (4-byte) float values, the raw data per second per device is:
+
+  16,000 * 3 * 4 = 192,000 bytes = 192 KB per second per device
+
+- If we have 10,000 devices, the total incoming data per second is:
+
+  192 * 10,000 = 1.92 GB/sec
+
+
+2. High-Level Architecture
+We need a scalable and resilient pipeline to handle the data. The main components of our system:
+
+1. Edge Processing (Preprocessing at the Client)
+   - Downsampling: If ultra-high resolution isn’t needed, reduce the sampling rate (e.g., average over 10ms windows).
+   - Compression: Use a lightweight protocol like Google’s Protocol Buffers (protobuf) instead of JSON.
+   - Batching: Instead of sending each sample separately, send data in chunks (e.g., every 100ms → reduces API calls by 100x).
+
+2. Ingestion Layer (Handling High Throughput Data)
+   - Load Balancer: AWS NLB for routing traffic.
+   - Streaming Message Queue: Apache Kafka to handle the high ingestion rate.
+
+3. Real-Time Processing (Optional)
+   - Stream Processing Engine: Apache Flink for real-time anomaly detection, filtering, or feature extraction.
+
+4. Storage Layer
+   - Hot Storage (Short-term, Fast Retrieval): Redis for real-time dashboards.
+   - Cold Storage (Long-term, Analytics): AWS S3.
+   - Database (Indexed Querying): PostgreSQL (TimescaleDB extension) for time-series analysis.
+
+5. Processing & Machine Learning
+   - Batch Processing: Apache Spark for aggregations.
+   - ML Pipelines: Scikit-Learn for pattern recognition and anomaly detection.
+   - Dashboards & Reporting: Grafana for real-time visualization.
+
+
+3. Step-by-Step Data Flow
+
+1️. Thin Client (Sensor)
+   - Reads accelerometer data (X, Y, Z at 16,000Hz).
+   - Applies downsampling (optional, to reduce noise).
+   - Batches data (e.g., send data every 100ms instead of per sample).
+   - Compresses data using Protocol Buffers (protobuf).
+   - Sends data via MQTT to the ingestion layer.
+
+2. Ingestion Layer
+   - AWS NLB (Network Load Balancer) directs data traffic efficiently.
+   - Data is ingested into Apache Kafka (for durable, replayable message queuing).
+
+3. Real-Time Processing
+   - Apache Flink processes streaming data:
+      - Detects anomalies (e.g., sudden acceleration spikes).
+      - Filters out noise (e.g., sensor glitches).
+      - Extracts features (e.g., rolling averages, peaks).
+      - Redis stores latest processed values for real-time dashboards.
+
+4. Storage & Batch Processing
+   - TimescaleDB (PostgreSQL extension) stores structured time-series sensor data for querying.
+   - AWS S3 stores raw sensor data for long-term analytics and ML training.
+   - Apache Spark runs batch jobs on AWS S3 data for trend analysis and historical insights.
+
+5. Analytics & Machine Learning
+   - Grafana visualizes live sensor data from Redis & TimescaleDB.
+   - Scikit-Learn detects unusual patterns/anomalies in batch data.
+   - Processed ML insights are stored in TimescaleDB or fed back into Flink for real-time adjustments.
+
+
+4. Software & Services
+Component | Technology Choices
+* Protocol - MQTT
+* Compression - Protobuf
+* Load Balancer - AWS NLB
+* Message Queue - Apache Kafka
+* Real-Time Processing - Apache Flink
+* Hot Storage (cache) - Redis
+* Database (Time-series) - TimescaleDB (PostgreSQL)
+* Cold Storage (long-term) - AWS S3
+* Batch processing - Apache spark
+* Visualization - Grafana
+* ML & Analytics - Scikit-Learn
