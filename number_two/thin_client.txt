@@ -1,3 +1,6 @@
+Question 1: Assuming that the device is sending continuously at 16000Hz for the X,Y, and Z acceleration measurements, what would your strategy be in handling and processing the data? How would you design the server infrastructure? Please enumerate the steps, software, algorithms, and services that you would use to ensure that the servers can handle the incoming data from our users. Diagrams can be really helpful for this.
+
+
 1. Understanding the Data Load
 - Each device sends acceleration data for X, Y, and Z axes at 16,000 Hz.
 - If each measurement consists of three 32-bit (4-byte) float values, the raw data per second per device is:
@@ -79,3 +82,54 @@ Component | Technology Choices
 * Batch processing - Apache spark
 * Visualization - Grafana
 * ML & Analytics - Scikit-Learn
+
+
+
+Question 2: If the sensors were upgraded to modern mobile devices, how would you change your architecture from A?
+
+If the sensors were upgraded to modern mobile devices, several architectural changes would be beneficial to leverage the increased processing power, connectivity, and sensor capabilities.
+Below are the key modifications:
+
+
+Key Architectural Changes
+1. Edge Processing (More Local Processing on Mobile Devices)
+- More On-Device Computation:
+  - Mobile devices have more CPU/GPU power, allowing for on-device feature extraction (e.g., computing statistical summaries, detecting anomalies before sending data).
+  - New Addition: TensorFlow Lite for on-device ML inference to reduce unnecessary data transmission.
+
+- Less Frequent Data Transmission:
+  - Instead of sending raw data at 16,000Hz, the device can pre-process and send only relevant events (e.g., detected movements, thresholds exceeded).
+
+- Adaptive Batching & Compression:
+  - Instead of fixed batching, mobile devices can dynamically adjust batch sizes based on network conditions to save bandwidth.
+
+
+2. Ingestion Layer (Smarter Data Routing)
+- Protocol Change:
+  - Switch from MQTT to WebSockets or gRPC
+    - Since mobile devices support stable TCP/WebSockets, we can use gRPC for faster, binary-encoded communication instead of MQTT.
+    - Still keep MQTT for unstable network scenarios (e.g., low connectivity regions).
+
+- Edge-to-Cloud Synchronization (Optional)
+  - New Addition: If mobile devices temporarily go offline, they should buffer data and sync it to the cloud when reconnected.
+
+
+3. Real-Time Processing & Storage (More Decentralized)
+- Lighter Load on Cloud Processing:
+  - Since more feature extraction and filtering is done on-device, Flink needs to process less raw data and focus on aggregations.
+
+- Edge Storage (Optional for Mobile-First Apps)
+  - New Addition: SQLite or local storage (for temporary caching before upload).
+
+- Data Storage Adjustments:
+  - Redis (for live dashboards) remains unchanged.
+  - TimescaleDB/PostgreSQL (for structured event storage) remains unchanged.
+  - AWS S3 (for raw historical logs) remains unchanged.
+
+
+4. Machine Learning Adjustments
+- More On-Device Inference → Less Cloud ML Load
+  - Instead of running all ML models in the cloud, some models (like motion pattern detection) can run on-device using TensorFlow Lite.
+
+- Cloud ML Still Needed for Model Updates
+  - Cloud ML models Scikit-Learn can be used for retraining models and updating on-device inference models periodically.
